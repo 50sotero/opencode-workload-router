@@ -14,19 +14,29 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "tsc",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "keywords": ["opencode", "plugin", "model-routing", "subagent", "workload", "tier"],
+  "keywords": [
+    "opencode",
+    "plugin",
+    "model-routing",
+    "subagent",
+    "workload",
+    "tier"
+  ],
   "license": "MIT",
   "peerDependencies": {
     "@opencode-ai/plugin": ">=1.2.0"
   },
   "dependencies": {
+    "@clack/prompts": "^1.2.0",
     "zod": "^4.1.0"
   },
   "devDependencies": {
