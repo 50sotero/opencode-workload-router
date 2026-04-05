@@ -1,0 +1,93 @@
+import { describe, it, expect, vi } from "vitest"
+import { createInterceptor } from "../src/interceptor"
+import type { TierMap, WorkloadRouterConfig } from "../src/types"
+
+const baseTierMap: TierMap = {
+  "tier-1": { providerID: "anthropic", modelID: "claude-haiku-4-5" },
+  "tier-2": { providerID: "anthropic", modelID: "claude-sonnet-4-6" },
+  "tier-3": { providerID: "openai", modelID: "gpt-5.4" },
+  "tier-4": { providerID: "anthropic", modelID: "claude-opus-4-6", variant: "max" },
+}
+
+const baseConfig: WorkloadRouterConfig = {
+  enabled: true,
+  provider_priority: ["anthropic", "openai"],
+  exclude_agents: ["sisyphus"],
+  intercept_tools: ["agent", "subtask", "delegate_task"],
+}
+
+describe("createInterceptor", () => {
+  it("ignores non-subagent tools", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { command: "ls -la" } }
+    await interceptor({ tool: "bash", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args).toEqual({ command: "ls -la" })
+  })
+
+  it("rewrites model for subagent tool based on tier tag", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { prompt: "[tier-1] find all TODO comments", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toEqual({
+      providerID: "anthropic",
+      modelID: "claude-haiku-4-5",
+    })
+  })
+
+  it("does not rewrite for excluded agents", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { prompt: "[tier-1] quick task", agent: "sisyphus" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toBeUndefined()
+  })
+
+  it("uses heuristic when no tier tag present", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { prompt: "grep for all auth imports", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toEqual({
+      providerID: "anthropic",
+      modelID: "claude-haiku-4-5",
+    })
+  })
+
+  it("falls back to small-model classifier when heuristic is ambiguous", async () => {
+    const mockClassify = vi.fn().mockResolvedValue("tier-2")
+    const interceptor = createInterceptor(baseConfig, baseTierMap, mockClassify)
+    const output = { args: { prompt: "work on the user profile page", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(mockClassify).toHaveBeenCalled()
+    expect(output.args.model).toEqual({
+      providerID: "anthropic",
+      modelID: "claude-sonnet-4-6",
+    })
+  })
+
+  it("defaults to tier-3 when classifier returns null", async () => {
+    const mockClassify = vi.fn().mockResolvedValue(null)
+    const interceptor = createInterceptor(baseConfig, baseTierMap, mockClassify)
+    const output = { args: { prompt: "work on the user profile page", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.4",
+    })
+  })
+
+  it("defaults to tier-3 when no classifier provided and heuristic is ambiguous", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { prompt: "work on the user profile page", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.4",
+    })
+  })
+
+  it("handles missing prompt in args gracefully", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toBeUndefined()
+  })
+})
