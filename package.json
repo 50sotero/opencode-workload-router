@@ -1,0 +1,39 @@
+{
+  "name": "opencode-workload-router",
+  "version": "0.1.0",
+  "description": "OpenCode plugin that auto-routes subagents to tiered models based on workload classification",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "opencode-workload-router": "./dist/bin/init.js"
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "keywords": ["opencode", "plugin", "model-routing", "subagent", "workload", "tier"],
+  "license": "MIT",
+  "peerDependencies": {
+    "@opencode-ai/plugin": ">=1.2.0"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "@opencode-ai/plugin": "^1.2.20",
+    "@opencode-ai/sdk": "^1.2.20",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.0.0"
+  }
+}
