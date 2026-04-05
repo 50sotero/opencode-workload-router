@@ -12,7 +12,7 @@ const TIER_1_VERBS = [
 ]
 
 const TIER_2_VERBS = [
-  "edit", "fix", "rename", "add", "remove", "test",
+  "edit", "fix", "rename", "add", "remove", "update", "test",
   "write test", "change", "replace", "move", "delete", "insert",
 ]
 
