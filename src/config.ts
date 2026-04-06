@@ -1,8 +1,10 @@
 import * as fs from "node:fs"
-import * as path from "node:path"
 import * as os from "node:os"
+import * as path from "node:path"
 import { z } from "zod"
-import type { WorkloadRouterConfig, TierName } from "./types"
+import type { WorkloadRouterConfig } from "./types.js"
+
+export const DEFAULT_INTERCEPT_TOOLS = ["agent", "subtask", "delegate_task", "call_omo_agent"]
 
 const TierOverrideSchema = z.object({
   model: z.string(),
@@ -20,16 +22,14 @@ const ConfigSchema = z.object({
     "tier-3": TierOverrideSchema.optional(),
     "tier-4": TierOverrideSchema.optional(),
   }).optional(),
-  intercept_tools: z.array(z.string()).default([
-    "agent", "subtask", "delegate_task", "call_omo_agent",
-  ]),
+  intercept_tools: z.array(z.string()).default(DEFAULT_INTERCEPT_TOOLS),
 })
 
 export const DEFAULT_CONFIG: WorkloadRouterConfig = {
   enabled: false,
   provider_priority: [],
   exclude_agents: [],
-  intercept_tools: ["agent", "subtask", "delegate_task", "call_omo_agent"],
+  intercept_tools: DEFAULT_INTERCEPT_TOOLS,
 }
 
 function getConfigPath(): string {
