@@ -6,7 +6,7 @@
 import * as fs from "node:fs"
 import * as path from "node:path"
 import * as os from "node:os"
-import { intro, outro, multiselect, text, confirm, isCancel, cancel } from "@clack/prompts"
+import { intro, outro, multiselect, text, isCancel, cancel } from "@clack/prompts"
 
 function getConfigDir(): string {
   const xdg = process.env.XDG_CONFIG_HOME
