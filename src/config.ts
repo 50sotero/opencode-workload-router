@@ -4,7 +4,7 @@ import * as path from "node:path"
 import { z } from "zod"
 import type { WorkloadRouterConfig } from "./types.js"
 
-export const DEFAULT_INTERCEPT_TOOLS = ["agent", "subtask", "delegate_task", "call_omo_agent"]
+export const DEFAULT_INTERCEPT_TOOLS = ["task", "agent", "subtask", "delegate_task", "call_omo_agent"]
 
 const TierOverrideSchema = z.object({
   model: z.string(),

@@ -6,6 +6,7 @@ OpenCode plugin that auto-routes subagents to tiered models based on workload cl
 
 The plugin intercepts subagent spawn calls and rewrites the model based on task complexity:
 
+0. **Session override** — If the user says something like `from now on, use gpt 5.3 codex for future subagent deployments`, future subagent spawns in that session use the resolved model directly until the user says `go back to workload routing`
 1. **Main agent tags** — If the main agent prefixes the task with `[tier-1]` through `[tier-4]`, that tier is used directly
 2. **Heuristic** — Keyword/token analysis classifies obvious cases at zero cost
 3. **Small-model classifier** — Ambiguous prompts are classified by a cheap model (~100 tokens)
@@ -81,7 +82,7 @@ OpenCode plugin registration (managed automatically by `init`):
     "tier-3": { "model": "google/gemini-2.5-pro" },
     "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   },
-  "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
+  "intercept_tools": ["task", "agent", "subtask", "delegate_task", "call_omo_agent"]
 }
 ```
 

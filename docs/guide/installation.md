@@ -114,7 +114,7 @@ Create `~/.config/opencode/workload-router.json`:
   "enabled": true,
   "provider_priority": ["anthropic", "openai"],    // one provider or ordered fallback list
   "exclude_agents": [],                              // agents to skip routing for
-  "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
+  "intercept_tools": ["task", "agent", "subtask", "delegate_task", "call_omo_agent"]
   // "classifier_model": "openai/gpt-5-nano"      // uncomment to override auto-detect
 }
 ```
@@ -155,7 +155,7 @@ If no authenticated providers are detected, init falls back to the built-in prov
   "enabled": true,
   "provider_priority": ["openai"],
   "exclude_agents": [],
-  "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
+  "intercept_tools": ["task", "agent", "subtask", "delegate_task", "call_omo_agent"]
 }
 ```
 
@@ -182,6 +182,7 @@ Tell the user:
 > 1. Auto-detect the best model for each of the 4 tiers from your connected providers
 > 2. Inject tier classification instructions into the main agent's system prompt
 > 3. Intercept subagent spawns and route them to the appropriate model
+> 4. Respect a session-wide natural-language override like `from now on, use gpt 5.3 codex for future subagent deployments` until the user switches back to workload routing
 >
 > The main agent will learn to prefix delegations with `[tier-1]` through `[tier-4]`.
 > If it doesn't tag a task, the heuristic and classifier handle it automatically.

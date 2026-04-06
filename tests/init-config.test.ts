@@ -11,10 +11,12 @@ describe("buildInitConfig", () => {
     })
 
     expect(config).toEqual({
+      classifier_model: undefined,
       enabled: true,
       provider_priority: ["openai"],
       exclude_agents: ["sisyphus"],
-      intercept_tools: ["agent", "subtask", "delegate_task", "call_omo_agent"],
+      intercept_tools: ["task", "agent", "subtask", "delegate_task", "call_omo_agent"],
+      tier_overrides: undefined,
     })
   })
 

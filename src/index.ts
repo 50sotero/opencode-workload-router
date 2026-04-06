@@ -4,8 +4,25 @@ import type { Plugin } from "@opencode-ai/plugin"
 import type { ClassifierSendFn } from "./classifier.js"
 import { loadConfig } from "./config.js"
 import { createInterceptor } from "./interceptor.js"
+import {
+  createChatMessageHook,
+  createSessionModelOverrideStore,
+} from "./session-overrides.js"
 import { createSystemPromptHook } from "./system-prompt.js"
 import { resolveTiers } from "./tier-resolver.js"
+
+type ProviderModel = {
+  id: string
+  tool_call: boolean
+  reasoning: boolean
+  limit: { context: number; output: number }
+  cost?: { input: number; output: number }
+}
+
+type ProviderData = {
+  id: string
+  models: Record<string, ProviderModel>
+}
 
 export const WorkloadRouter: Plugin = async ({ client }) => {
   const config = loadConfig()
@@ -16,7 +33,7 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
   }
 
   // Query connected providers
-  let providers: any[] = []
+  let providers: ProviderData[] = []
   let connectedIds: string[] = []
   try {
     const providerResponse = await client.provider.list()
@@ -50,15 +67,19 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
 
   console.log("[workload-router] Resolved tiers:")
   for (const [tier, model] of filledTiers) {
-    const variant = model!.variant ? ` (variant: ${model!.variant})` : ""
-    console.log(`  ${tier}: ${model!.providerID}/${model!.modelID}${variant}`)
+    if (!model) continue
+    const variant = model.variant ? ` (variant: ${model.variant})` : ""
+    console.log(`  ${tier}: ${model.providerID}/${model.modelID}${variant}`)
   }
 
   // Build classifier send function if a classifier model is available
   let classifierSend: ClassifierSendFn | null = null
-  if (config.classifier_model || tierMap["tier-1"]) {
-    const classifierModelId = config.classifier_model
-      ?? `${tierMap["tier-1"]!.providerID}/${tierMap["tier-1"]!.modelID}`
+  const classifierTierModel = tierMap["tier-1"]
+  const classifierModelId = config.classifier_model
+    ?? (classifierTierModel
+      ? `${classifierTierModel.providerID}/${classifierTierModel.modelID}`
+      : undefined)
+  if (classifierModelId) {
 
     classifierSend = async (systemPrompt: string, userPrompt: string): Promise<string> => {
       const [providerID, ...modelParts] = classifierModelId.split("/")
@@ -89,10 +110,18 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
     }
   }
 
-  const interceptor = createInterceptor(config, tierMap, classifierSend)
+  const sessionOverrides = createSessionModelOverrideStore()
+  const chatMessageHook = createChatMessageHook(
+    sessionOverrides,
+    providers,
+    connectedIds,
+    config.provider_priority,
+  )
+  const interceptor = createInterceptor(config, tierMap, classifierSend, sessionOverrides)
   const systemPromptHook = createSystemPromptHook()
 
   return {
+    "chat.message": chatMessageHook,
     "experimental.chat.system.transform": systemPromptHook,
     "tool.execute.before": interceptor,
   }
