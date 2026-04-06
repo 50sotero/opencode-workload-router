@@ -40,15 +40,15 @@ describe("resolveTiers", () => {
   it("resolves all 4 tiers from a single provider", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
-        "claude-sonnet-4-6": { toolcall: true, reasoning: true, context: 200000 },
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
+        "reasoning-model": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
     const result = resolveTiers(providers, connected, ["anthropic"], undefined)
 
-    expect(result["tier-1"]).toEqual({ providerID: "anthropic", modelID: "claude-haiku-4-5" })
+    expect(result["tier-1"]).toEqual({ providerID: "anthropic", modelID: "lite-model" })
     expect(result["tier-2"]?.providerID).toBe("anthropic")
     expect(result["tier-3"]?.providerID).toBe("anthropic")
     expect(result["tier-4"]?.providerID).toBe("anthropic")
@@ -61,8 +61,8 @@ describe("resolveTiers", () => {
         "gpt-5.4": { toolcall: true, reasoning: true, context: 350000 },
       }),
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["openai", "anthropic"]
@@ -79,7 +79,7 @@ describe("resolveTiers", () => {
   it("skips disconnected providers", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
       makeProvider("openai", {
         "gpt-5-nano": { toolcall: true, reasoning: false, context: 50000 },
@@ -93,7 +93,7 @@ describe("resolveTiers", () => {
   it("applies tier_overrides over auto-detection", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
@@ -113,12 +113,12 @@ describe("resolveTiers", () => {
     // Only a high-capability model available — tier-1 and tier-2 should fall up
     const providers = [
       makeProvider("anthropic", {
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
     const result = resolveTiers(providers, connected, ["anthropic"], undefined)
     // tier-1 has no non-reasoning model, should fall up to opus
-    expect(result["tier-1"]?.modelID).toBe("claude-opus-4-6")
+    expect(result["tier-1"]?.modelID).toBe("max-model")
   })
 })

@@ -3,10 +3,10 @@ import { createInterceptor } from "../src/interceptor"
 import type { TierMap, WorkloadRouterConfig } from "../src/types"
 
 const baseTierMap: TierMap = {
-  "tier-1": { providerID: "anthropic", modelID: "claude-haiku-4-5" },
-  "tier-2": { providerID: "anthropic", modelID: "claude-sonnet-4-6" },
+  "tier-1": { providerID: "openai", modelID: "gpt-5-nano" },
+  "tier-2": { providerID: "openai", modelID: "gpt-5.2" },
   "tier-3": { providerID: "openai", modelID: "gpt-5.4" },
-  "tier-4": { providerID: "anthropic", modelID: "claude-opus-4-6", variant: "max" },
+  "tier-4": { providerID: "openai", modelID: "gpt-5.4", variant: "xhigh" },
 }
 
 const baseConfig: WorkloadRouterConfig = {
@@ -29,8 +29,8 @@ describe("createInterceptor", () => {
     const output = { args: { prompt: "[tier-1] find all TODO comments", agent: "explore" } }
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-haiku-4-5",
+      providerID: "openai",
+      modelID: "gpt-5-nano",
     })
   })
 
@@ -46,8 +46,8 @@ describe("createInterceptor", () => {
     const output = { args: { prompt: "grep for all auth imports", agent: "explore" } }
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-haiku-4-5",
+      providerID: "openai",
+      modelID: "gpt-5-nano",
     })
   })
 
@@ -58,8 +58,8 @@ describe("createInterceptor", () => {
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(mockClassify).toHaveBeenCalled()
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-6",
+      providerID: "openai",
+      modelID: "gpt-5.2",
     })
   })
 
