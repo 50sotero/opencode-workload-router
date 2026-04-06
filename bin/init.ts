@@ -17,7 +17,7 @@ async function main() {
   intro("opencode-workload-router setup")
 
   const providerChoices = [
-    { value: "anthropic", label: "Anthropic (Claude)" },
+    { value: "anthropic", label: "Anthropic" },
     { value: "openai", label: "OpenAI (GPT)" },
     { value: "google", label: "Google (Gemini)" },
     { value: "xai", label: "xAI (Grok)" },
