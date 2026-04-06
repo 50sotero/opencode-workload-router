@@ -24,6 +24,27 @@ type ProviderData = {
   models: Record<string, ProviderModel>
 }
 
+const PROVIDER_LIST_TIMEOUT_MS = 3_000
+
+function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${ms}ms`))
+    }, ms)
+
+    promise.then(
+      (value) => {
+        clearTimeout(timeoutId)
+        resolve(value)
+      },
+      (error) => {
+        clearTimeout(timeoutId)
+        reject(error)
+      },
+    )
+  })
+}
+
 export const WorkloadRouter: Plugin = async ({ client }) => {
   const config = loadConfig()
 
@@ -36,7 +57,11 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
   let providers: ProviderData[] = []
   let connectedIds: string[] = []
   try {
-    const providerResponse = await client.provider.list()
+    const providerResponse = await withTimeout(
+      client.provider.list(),
+      PROVIDER_LIST_TIMEOUT_MS,
+      "Provider discovery",
+    )
     if (providerResponse.data) {
       providers = providerResponse.data.all ?? []
       connectedIds = providerResponse.data.connected ?? []
