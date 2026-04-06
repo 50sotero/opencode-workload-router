@@ -21,9 +21,21 @@ Models for each tier are auto-detected from your connected providers, ranked by 
 | tier-3 | Heavy: multi-file refactor, debugging | premium (GPT-5.4, Opus) |
 | tier-4 | Critical: architecture, system design | frontier max reasoning |
 
-## Install
+## Installation
+
+### For Humans
+
+Copy and paste this prompt to your LLM agent (Claude Code, AmpCode, Cursor, etc.):
+
+```
+Install and configure opencode-workload-router by following the instructions here:
+https://raw.githubusercontent.com/50sotero/opencode-workload-router/refs/heads/master/docs/guide/installation.md
+```
+
+Or install manually:
 
 ```bash
+cd ~/.config/opencode
 npm install opencode-workload-router
 npx opencode-workload-router init
 ```
@@ -34,6 +46,14 @@ Add to your `opencode.json`:
 {
   "plugin": ["opencode-workload-router"]
 }
+```
+
+### For LLM Agents
+
+Fetch the installation guide and follow it:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/50sotero/opencode-workload-router/refs/heads/master/docs/guide/installation.md
 ```
 
 ## Config
