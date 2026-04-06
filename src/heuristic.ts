@@ -1,7 +1,7 @@
 // Heuristic classifier — zero-cost first pass in the classification chain.
 // Handles explicit tier tags and keyword/token analysis. Returns low confidence
 // for ambiguous prompts so they fall through to the small-model classifier.
-import type { TierName, HeuristicResult } from "./types"
+import type { TierName, HeuristicResult } from "./types.js"
 
 const TIER_TAG_PATTERN = /^\[tier-([1-4])\]\s*/i
 

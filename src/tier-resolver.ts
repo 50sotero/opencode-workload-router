@@ -2,8 +2,8 @@
 // Tiers: tier-1 (toolcall), tier-2 (+reasoning), tier-3 (+100K ctx), tier-4 (+200K ctx).
 // Respects provider priority order, tier_overrides, and falls back missing tiers upward.
 
-import type { TierName, TierMap, ResolvedModel, WorkloadRouterConfig } from "./types"
-import { TIER_NAMES } from "./types"
+import { TIER_NAMES } from "./types.js"
+import type { TierName, TierMap, ResolvedModel, WorkloadRouterConfig } from "./types.js"
 
 type ProviderModel = {
   id: string

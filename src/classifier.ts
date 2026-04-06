@@ -1,8 +1,8 @@
 // Small-model classifier: sends a task prompt to a cheap LLM and parses the
 // tier-N response. Accepts an injected send function to keep this module free
 // of any SDK / provider coupling. Returns null on invalid response or timeout.
-import type { TierName } from "./types"
-import { TIER_NAMES } from "./types"
+import type { TierName } from "./types.js"
+import { TIER_NAMES } from "./types.js"
 
 export const CLASSIFIER_SYSTEM_PROMPT = `You are a task complexity classifier for an AI coding assistant subagent.
 Given a developer's task description, classify it into exactly one tier:

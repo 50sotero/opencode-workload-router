@@ -1,11 +1,11 @@
 // Plugin entry point — wires config, tier resolution, interceptor, and system
 // prompt injection into the OpenCode plugin hook interface.
 import type { Plugin } from "@opencode-ai/plugin"
-import { loadConfig } from "./config"
-import { resolveTiers } from "./tier-resolver"
-import { createInterceptor } from "./interceptor"
-import { createSystemPromptHook } from "./system-prompt"
-import type { ClassifierSendFn } from "./classifier"
+import type { ClassifierSendFn } from "./classifier.js"
+import { loadConfig } from "./config.js"
+import { createInterceptor } from "./interceptor.js"
+import { createSystemPromptHook } from "./system-prompt.js"
+import { resolveTiers } from "./tier-resolver.js"
 
 export const WorkloadRouter: Plugin = async ({ client }) => {
   const config = loadConfig()

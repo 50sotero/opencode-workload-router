@@ -1,10 +1,10 @@
 // Interceptor — hooked into tool.execute.before. Detects subagent tool calls,
 // classifies the task prompt through the 3-level chain (tier tag → heuristic →
 // small-model classifier), and rewrites output.args.model before dispatch.
-import type { TierName, TierMap, WorkloadRouterConfig, ResolvedModel } from "./types"
-import { classifyHeuristic } from "./heuristic"
-import type { ClassifierSendFn } from "./classifier"
-import { classifyWithModel } from "./classifier"
+import type { ClassifierSendFn } from "./classifier.js"
+import { classifyWithModel } from "./classifier.js"
+import { classifyHeuristic } from "./heuristic.js"
+import type { TierName, TierMap, WorkloadRouterConfig, ResolvedModel } from "./types.js"
 
 type ToolInput = {
   tool: string
