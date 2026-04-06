@@ -16,16 +16,18 @@ Models for each tier are auto-detected from your connected providers, ranked by 
 
 | Tier | When | Model Class |
 |---|---|---|
-| tier-1 | Trivial: grep, lookup, simple question | nano/flash |
-| tier-2 | Standard: single-file edit, write a test | mid-range (Sonnet, GPT-5.2) |
-| tier-3 | Heavy: multi-file refactor, debugging | premium (GPT-5.4, Opus) |
-| tier-4 | Critical: architecture, system design | frontier max reasoning |
+| tier-1 | Trivial: grep, lookup, simple question | nano/flash (e.g. GPT-5 Nano, MiniCPM4-0.5B) |
+| tier-2 | Standard: single-file edit, write a test | mid-range (e.g. GPT-5.2, Qwen3-8B) |
+| tier-3 | Heavy: multi-file refactor, debugging | premium (e.g. GPT-5.4, DeepSeek-R1-Distill-Qwen-7B) |
+| tier-4 | Critical: architecture, system design | frontier max reasoning (e.g. GPT-5.4 xhigh, QwQ-32B) |
+
+This works well with both hosted models and OSS Chinese models, especially when you want lightweight, coder-focused, and reasoning-heavy tiers in the same routing setup.
 
 ## Installation
 
 ### For Humans
 
-Copy and paste this prompt to your LLM agent (Claude Code, AmpCode, Cursor, etc.):
+Copy and paste this prompt to your coding agent (AmpCode, Cursor, etc.):
 
 ```
 Install and configure opencode-workload-router by following the instructions here:
@@ -67,7 +69,7 @@ Config file: `~/.config/opencode/workload-router.json`
   "classifier_model": "openai/gpt-5-nano",    // optional
   "exclude_agents": ["sisyphus", "prometheus"], // keep on their static model
   "tier_overrides": {                           // optional manual overrides
-    "tier-4": { "model": "anthropic/claude-opus-4-6", "variant": "max" }
+    "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   },
   "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
 }

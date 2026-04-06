@@ -2,7 +2,7 @@
 
 ## For Humans
 
-Paste this into your LLM agent session (Claude Code, AmpCode, Cursor, etc.):
+Paste this into your coding agent session (AmpCode, Cursor, etc.):
 
 ```
 Install and configure opencode-workload-router by following the instructions here:
@@ -35,7 +35,7 @@ Ask the user these questions to configure the plugin:
 
 3. **Do you want to specify a classifier model, or auto-detect?**
    - **Auto-detect** (recommended): the plugin uses the cheapest tier-1 model as the classifier
-   - **Specify**: provide a model ID like `openai/gpt-5-nano` or `anthropic/claude-haiku-4-5`
+   - **Specify**: provide a model ID like `openai/gpt-5-nano` or `google/gemini-2.5-flash`
 
 ### Step 1: Verify OpenCode is installed
 
@@ -128,8 +128,8 @@ Adjust `provider_priority` and `exclude_agents` based on user's answers.
 ```jsonc
 {
   "tier_overrides": {
-    "tier-1": { "model": "anthropic/claude-haiku-4-5" },
-    "tier-4": { "model": "anthropic/claude-opus-4-6", "variant": "max" }
+    "tier-1": { "model": "openai/gpt-5-nano" },
+    "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   }
 }
 ```
@@ -191,9 +191,9 @@ Models per tier are auto-detected from connected providers based on capability b
 
 | Tier | Capability Bracket | Example Models |
 |------|--------------------|----------------|
-| tier-1 | tool_call support | claude-haiku-4-5, gpt-5-nano |
-| tier-2 | + reasoning | claude-sonnet, gpt-5.2 |
-| tier-3 | + 100K context | claude-opus, gpt-5.4 |
-| tier-4 | + 200K context, highest variant | claude-opus-4-6 max, gpt-5.4 xhigh |
+| tier-1 | tool_call support | gpt-5-nano, gemini-2.5-flash |
+| tier-2 | + reasoning | gpt-5.2, gemini-2.5-pro |
+| tier-3 | + 100K context | gpt-5.4, gemini-2.5-pro |
+| tier-4 | + 200K context, highest variant | gpt-5.4 xhigh, gemini-2.5-pro |
 
 The plugin only routes **subagent** spawns. The main agent's model is never touched.
