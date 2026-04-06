@@ -4,7 +4,8 @@
 import type { ClassifierSendFn } from "./classifier.js"
 import { classifyWithModel } from "./classifier.js"
 import { classifyHeuristic } from "./heuristic.js"
-import type { TierName, TierMap, WorkloadRouterConfig, ResolvedModel } from "./types.js"
+import type { SessionModelOverrideStore } from "./session-overrides.js"
+import type { TierName, TierMap, WorkloadRouterConfig } from "./types.js"
 
 type ToolInput = {
   tool: string
@@ -13,7 +14,7 @@ type ToolInput = {
 }
 
 type ToolOutput = {
-  args: any
+  args: unknown
 }
 
 function extractPrompt(args: Record<string, unknown>): string | null {
@@ -26,7 +27,7 @@ function extractPrompt(args: Record<string, unknown>): string | null {
 }
 
 function extractAgentName(args: Record<string, unknown>): string | null {
-  const val = args.agent ?? args.agentName ?? args.name
+  const val = args.agent ?? args.agentName ?? args.name ?? args.subagent_type
   return typeof val === "string" ? val : null
 }
 
@@ -34,6 +35,7 @@ export function createInterceptor(
   config: WorkloadRouterConfig,
   tierMap: TierMap,
   classifierSend: ClassifierSendFn | null,
+  sessionOverrides?: SessionModelOverrideStore,
 ) {
   const interceptTools = new Set(config.intercept_tools.map(t => t.toLowerCase()))
   const excludeAgents = new Set(config.exclude_agents)
@@ -67,6 +69,20 @@ export function createInterceptor(
 
     const agent = extractAgentName(args as Record<string, unknown>)
     if (agent && excludeAgents.has(agent)) return
+
+    const rememberedOverride = sessionOverrides?.get(input.sessionID)
+    if (rememberedOverride) {
+      const modelValue: Record<string, string> = {
+        providerID: rememberedOverride.providerID,
+        modelID: rememberedOverride.modelID,
+      }
+      if (rememberedOverride.variant) {
+        modelValue.variant = rememberedOverride.variant
+      }
+
+      ;(args as Record<string, unknown>).model = modelValue
+      return
+    }
 
     const tier = await classifyPrompt(prompt)
     const resolved = tierMap[tier]

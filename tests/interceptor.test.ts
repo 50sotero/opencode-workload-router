@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 import { createInterceptor } from "../src/interceptor"
+import { createSessionModelOverrideStore } from "../src/session-overrides"
 import type { TierMap, WorkloadRouterConfig } from "../src/types"
 
 const baseTierMap: TierMap = {
@@ -13,7 +14,7 @@ const baseConfig: WorkloadRouterConfig = {
   enabled: true,
   provider_priority: ["anthropic", "openai"],
   exclude_agents: ["sisyphus"],
-  intercept_tools: ["agent", "subtask", "delegate_task"],
+  intercept_tools: ["task", "agent", "subtask", "delegate_task"],
 }
 
 describe("createInterceptor", () => {
@@ -38,6 +39,13 @@ describe("createInterceptor", () => {
     const interceptor = createInterceptor(baseConfig, baseTierMap, null)
     const output = { args: { prompt: "[tier-1] quick task", agent: "sisyphus" } }
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toBeUndefined()
+  })
+
+  it("does not rewrite excluded built-in task subagents", async () => {
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null)
+    const output = { args: { prompt: "[tier-1] quick task", subagent_type: "sisyphus" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toBeUndefined()
   })
 
@@ -81,6 +89,26 @@ describe("createInterceptor", () => {
     expect(output.args.model).toEqual({
       providerID: "openai",
       modelID: "gpt-5.4",
+    })
+  })
+
+  it("uses a remembered session override before heuristic classification", async () => {
+    const overrides = createSessionModelOverrideStore()
+    overrides.set("s1", { providerID: "openai", modelID: "gpt-5.3-codex" })
+    const mockClassify = vi.fn().mockResolvedValue("tier-1")
+    const interceptor = createInterceptor(baseConfig, baseTierMap, mockClassify, overrides)
+    const output = {
+      args: {
+        prompt: "work on the user profile page",
+        description: "profile task",
+        subagent_type: "explore",
+      },
+    }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
+    expect(mockClassify).not.toHaveBeenCalled()
+    expect(output.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.3-codex",
     })
   })
 
