@@ -116,10 +116,10 @@ This makes the main agent the primary classifier — it has the full conversatio
 
 | Tier | When | Capability Bracket | Model Class Example |
 |---|---|---|---|
-| tier-1 | Trivial — grep, file lookup, simple question, read-only | tool_call support | gpt-5-nano, claude-haiku-4-5, minimax-flash |
-| tier-2 | Standard — single-file edit, write a test, moderate reasoning | tool_call + reasoning | claude-sonnet, gpt-5.2, gemini-flash |
-| tier-3 | Heavy — multi-file refactor, debugging, feature implementation | tool_call + reasoning + context >= 100K | gpt-5.4 medium, claude-opus, gemini-pro |
-| tier-4 | Critical — architecture, complex system design | tool_call + reasoning + context >= 200K + highest variant | claude-opus-4-6 max, gpt-5.4 xhigh |
+| tier-1 | Trivial — grep, file lookup, simple question, read-only | tool_call support | gpt-5-nano, qwen2.5-coder, minimax-flash |
+| tier-2 | Standard — single-file edit, write a test, moderate reasoning | tool_call + reasoning | qwen3-coder, gpt-5.2, gemini-flash |
+| tier-3 | Heavy — multi-file refactor, debugging, feature implementation | tool_call + reasoning + context >= 100K | gpt-5.4 medium, deepseek-r1, gemini-pro |
+| tier-4 | Critical — architecture, complex system design | tool_call + reasoning + context >= 200K + highest variant | gpt-5.4 xhigh, deepseek-r1, glm-4.5 |
 
 ## Tier Auto-Detection
 
@@ -269,8 +269,8 @@ Location: `~/.config/opencode/workload-router.json`
   "classifier_model": "openai/gpt-5-nano",
   "exclude_agents": ["sisyphus", "prometheus"],
   "tier_overrides": {
-    "tier-1": { "model": "anthropic/claude-haiku-4-5" },
-    "tier-4": { "model": "anthropic/claude-opus-4-6", "variant": "max" }
+    "tier-1": { "model": "openai/gpt-5-nano" },
+    "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   },
   "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
 }
@@ -326,10 +326,10 @@ Writing config to ~/.config/opencode/workload-router.json
 Add "opencode-workload-router" to your opencode.json plugin array
 
 Done. Resolved tiers:
-  tier-1: anthropic/claude-haiku-4-5
-  tier-2: anthropic/claude-sonnet-4-6
-  tier-3: anthropic/claude-opus-4-6
-  tier-4: anthropic/claude-opus-4-6 (variant: max)
+  tier-1: openai/gpt-5-nano
+  tier-2: qwen/qwen3-coder
+  tier-3: deepseek/deepseek-r1
+  tier-4: openai/gpt-5.4 (variant: xhigh)
 ```
 
 ## Package Structure

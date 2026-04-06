@@ -620,15 +620,15 @@ describe("resolveTiers", () => {
   it("resolves all 4 tiers from a single provider", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
-        "claude-sonnet-4-6": { toolcall: true, reasoning: true, context: 200000 },
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
+        "reasoning-model": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
     const result = resolveTiers(providers, connected, ["anthropic"], undefined)
 
-    expect(result["tier-1"]).toEqual({ providerID: "anthropic", modelID: "claude-haiku-4-5" })
+    expect(result["tier-1"]).toEqual({ providerID: "anthropic", modelID: "lite-model" })
     expect(result["tier-2"]?.providerID).toBe("anthropic")
     expect(result["tier-3"]?.providerID).toBe("anthropic")
     expect(result["tier-4"]?.providerID).toBe("anthropic")
@@ -641,8 +641,8 @@ describe("resolveTiers", () => {
         "gpt-5.4": { toolcall: true, reasoning: true, context: 350000 },
       }),
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["openai", "anthropic"]
@@ -659,7 +659,7 @@ describe("resolveTiers", () => {
   it("skips disconnected providers", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
       makeProvider("openai", {
         "gpt-5-nano": { toolcall: true, reasoning: false, context: 50000 },
@@ -673,7 +673,7 @@ describe("resolveTiers", () => {
   it("applies tier_overrides over auto-detection", () => {
     const providers = [
       makeProvider("anthropic", {
-        "claude-haiku-4-5": { toolcall: true, reasoning: false, context: 200000 },
+        "lite-model": { toolcall: true, reasoning: false, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
@@ -693,13 +693,13 @@ describe("resolveTiers", () => {
     // Only a high-capability model available — tier-1 and tier-2 should fall up
     const providers = [
       makeProvider("anthropic", {
-        "claude-opus-4-6": { toolcall: true, reasoning: true, context: 200000 },
+        "max-model": { toolcall: true, reasoning: true, context: 200000 },
       }),
     ]
     const connected = ["anthropic"]
     const result = resolveTiers(providers, connected, ["anthropic"], undefined)
     // tier-1 has no non-reasoning model, should fall up to opus
-    expect(result["tier-1"]?.modelID).toBe("claude-opus-4-6")
+    expect(result["tier-1"]?.modelID).toBe("max-model")
   })
 })
 ```
@@ -989,10 +989,10 @@ import { createInterceptor } from "../src/interceptor"
 import type { TierMap, WorkloadRouterConfig } from "../src/types"
 
 const baseTierMap: TierMap = {
-  "tier-1": { providerID: "anthropic", modelID: "claude-haiku-4-5" },
-  "tier-2": { providerID: "anthropic", modelID: "claude-sonnet-4-6" },
+  "tier-1": { providerID: "openai", modelID: "gpt-5-nano" },
+  "tier-2": { providerID: "openai", modelID: "gpt-5.2" },
   "tier-3": { providerID: "openai", modelID: "gpt-5.4" },
-  "tier-4": { providerID: "anthropic", modelID: "claude-opus-4-6", variant: "max" },
+  "tier-4": { providerID: "openai", modelID: "gpt-5.4", variant: "xhigh" },
 }
 
 const baseConfig: WorkloadRouterConfig = {
@@ -1015,8 +1015,8 @@ describe("createInterceptor", () => {
     const output = { args: { prompt: "[tier-1] find all TODO comments", agent: "explore" } }
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-haiku-4-5",
+      providerID: "openai",
+      modelID: "gpt-5-nano",
     })
   })
 
@@ -1032,8 +1032,8 @@ describe("createInterceptor", () => {
     const output = { args: { prompt: "grep for all auth imports", agent: "explore" } }
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-haiku-4-5",
+      providerID: "openai",
+      modelID: "gpt-5-nano",
     })
   })
 
@@ -1044,8 +1044,8 @@ describe("createInterceptor", () => {
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(mockClassify).toHaveBeenCalled()
     expect(output.args.model).toEqual({
-      providerID: "anthropic",
-      modelID: "claude-sonnet-4-6",
+      providerID: "openai",
+      modelID: "gpt-5.2",
     })
   })
 
@@ -1436,7 +1436,7 @@ async function main() {
   intro("opencode-workload-router setup")
 
   const providerChoices = [
-    { value: "anthropic", label: "Anthropic (Claude)" },
+    { value: "anthropic", label: "Anthropic" },
     { value: "openai", label: "OpenAI (GPT)" },
     { value: "google", label: "Google (Gemini)" },
     { value: "xai", label: "xAI (Grok)" },
@@ -1582,7 +1582,7 @@ Config file: `~/.config/opencode/workload-router.json`
   "classifier_model": "openai/gpt-5-nano",    // optional
   "exclude_agents": ["sisyphus", "prometheus"], // keep on their static model
   "tier_overrides": {                           // optional manual overrides
-    "tier-4": { "model": "anthropic/claude-opus-4-6", "variant": "max" }
+    "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   },
   "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
 }
