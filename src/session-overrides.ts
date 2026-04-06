@@ -27,6 +27,8 @@ type OverrideInstruction =
   | { action: "set"; modelQuery: string }
   | { action: "clear" }
 
+const KNOWN_VARIANTS = new Set(["low", "medium", "high", "xhigh", "max"])
+
 const FUTURE_SUBAGENT_SCOPE = String.raw`future\s+subagent(?:\s+(?:deployments?|tasks?|spawns?))?`
 
 const SET_OVERRIDE_PATTERNS = [
@@ -38,6 +40,11 @@ const SET_OVERRIDE_PATTERNS = [
     String.raw`^\s*(?:please\s+)?use\s+(.+?)\s+for\s+${FUTURE_SUBAGENT_SCOPE}[.!?\s]*$`,
     "i",
   ),
+]
+
+const ONE_SHOT_PATTERNS = [
+  /^\s*spawn\s+a\s+subagent\s+with\s+(.+?)\s+and\s+(.+)$/i,
+  /^\s*use\s+(.+?)\s+for\s+(?:this|the\s+next)\s+subagent\s+and\s+(.+)$/i,
 ]
 
 const CLEAR_OVERRIDE_PATTERNS = [
@@ -53,10 +60,14 @@ export type SessionModelOverrideStore = {
   get(sessionID: string): ResolvedModel | undefined
   set(sessionID: string, model: ResolvedModel): void
   clear(sessionID: string): void
+  getOneShot(sessionID: string): ResolvedModel | undefined
+  setOneShot(sessionID: string, model: ResolvedModel): void
+  consumeOneShot(sessionID: string): ResolvedModel | undefined
 }
 
 export function createSessionModelOverrideStore(): SessionModelOverrideStore {
   const overrides = new Map<string, ResolvedModel>()
+  const oneShots = new Map<string, ResolvedModel>()
 
   return {
     get(sessionID) {
@@ -67,6 +78,17 @@ export function createSessionModelOverrideStore(): SessionModelOverrideStore {
     },
     clear(sessionID) {
       overrides.delete(sessionID)
+    },
+    getOneShot(sessionID) {
+      return oneShots.get(sessionID)
+    },
+    setOneShot(sessionID, model) {
+      oneShots.set(sessionID, model)
+    },
+    consumeOneShot(sessionID) {
+      const model = oneShots.get(sessionID)
+      if (model) oneShots.delete(sessionID)
+      return model
     },
   }
 }
@@ -95,6 +117,41 @@ function parseOverrideInstruction(text: string): OverrideInstruction | null {
     const modelQuery = match[1]?.trim()
     if (!modelQuery) return null
     return { action: "set", modelQuery }
+  }
+
+  return null
+}
+
+export type OneShotInstruction = {
+  modelQuery: string
+  variant: string | undefined
+  taskText: string
+}
+
+export function parseOneShotInstruction(text: string): OneShotInstruction | null {
+  if (text.length === 0) return null
+
+  // Reject persistent override phrasing first
+  if (parseOverrideInstruction(text)) return null
+
+  for (const pattern of ONE_SHOT_PATTERNS) {
+    const match = text.match(pattern)
+    if (!match) continue
+
+    let modelQuery = match[1]?.trim()
+    const taskText = match[2]?.trim()
+    if (!modelQuery || !taskText) continue
+
+    // Check if last token of model query is a known variant
+    let variant: string | undefined
+    const tokens = modelQuery.split(/\s+/)
+    const lastToken = tokens[tokens.length - 1]?.toLowerCase()
+    if (lastToken && KNOWN_VARIANTS.has(lastToken) && tokens.length > 1) {
+      variant = lastToken
+      modelQuery = tokens.slice(0, -1).join(" ")
+    }
+
+    return { modelQuery, variant, taskText }
   }
 
   return null
@@ -216,6 +273,30 @@ export function createChatMessageHook(
     output: ChatMessageOutput,
   ): Promise<void> {
     const messageText = extractMessageText(output.parts)
+
+    // Check for one-shot instruction first
+    const oneShot = parseOneShotInstruction(messageText)
+    if (oneShot) {
+      const resolved = resolveModelOverride(
+        oneShot.modelQuery,
+        providers,
+        connectedProviderIds,
+        providerPriority,
+      )
+      if (!resolved) return
+
+      const oneShotModel: ResolvedModel = {
+        providerID: resolved.providerID,
+        modelID: resolved.modelID,
+      }
+      if (oneShot.variant) {
+        oneShotModel.variant = oneShot.variant
+      }
+      store.setOneShot(input.sessionID, oneShotModel)
+      return
+    }
+
+    // Check for persistent override instruction
     const instruction = parseOverrideInstruction(messageText)
     if (!instruction) return
 

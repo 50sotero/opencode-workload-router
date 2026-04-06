@@ -7,7 +7,12 @@ export const TIER_INSTRUCTION_TEXT = `When delegating tasks to subagents, assess
 
 Example: "[tier-1] Find all files importing the auth module"
 
-If you omit the tag, the system will classify automatically.`
+If you omit the tag, the system will classify automatically.
+
+To spawn a single subagent with a specific model, use:
+  "spawn a subagent with <model> [variant] and <task>"
+  "use <model> [variant] for this subagent and <task>"
+This applies only to the immediate next spawn and does not persist.`
 
 type SystemTransformInput = {
   sessionID?: string
