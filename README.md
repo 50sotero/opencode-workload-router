@@ -42,13 +42,12 @@ npm install opencode-workload-router
 npx opencode-workload-router init
 ```
 
-Add to your `opencode.json`:
-
-```json
-{
-  "plugin": ["opencode-workload-router"]
-}
-```
+The init CLI now:
+- auto-detects the providers you already authenticated in OpenCode,
+- lets you use one provider for all tiers,
+- auto-pick across multiple providers in priority order,
+- or pin tier-1 through tier-4 to specific models across those providers,
+- and registers `opencode-workload-router@latest` in `opencode.json` so OpenCode keeps it updated on launch.
 
 ### For LLM Agents
 
@@ -62,18 +61,31 @@ curl -fsSL https://raw.githubusercontent.com/50sotero/opencode-workload-router/r
 
 Config file: `~/.config/opencode/workload-router.json`
 
+OpenCode plugin registration (managed automatically by `init`):
+
+```json
+{
+  "plugin": ["opencode-workload-router@latest"]
+}
+```
+
 ```jsonc
 {
   "enabled": true,
-  "provider_priority": ["anthropic", "openai", "google"],
+  "provider_priority": ["openai", "google"],
   "classifier_model": "openai/gpt-5-nano",    // optional
   "exclude_agents": ["sisyphus", "prometheus"], // keep on their static model
-  "tier_overrides": {                           // optional manual overrides
+  "tier_overrides": {                           // optional per-tier model pins
+    "tier-1": { "model": "openai/gpt-5-nano" },
+    "tier-2": { "model": "google/gemini-2.5-flash" },
+    "tier-3": { "model": "google/gemini-2.5-pro" },
     "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   },
   "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
 }
 ```
+
+If you choose the single-provider setup path in `init`, the CLI writes a one-item `provider_priority` array and leaves tier selection to auto-detection inside that provider. If no authenticated providers are detected, `init` falls back to the built-in provider catalog and tells you to run `opencode auth login` for a narrower list.
 
 ## Compatibility
 

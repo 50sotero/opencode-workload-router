@@ -25,15 +25,20 @@ If you're an LLM Agent helping set up opencode-workload-router, follow these ste
 
 Ask the user these questions to configure the plugin:
 
-1. **Which providers do you have connected in OpenCode?**
-   Common options: `anthropic`, `openai`, `google`, `xai`, `github-copilot`, `opencode`
-   This determines `provider_priority` — order them by preference (best models first).
+1. **How should routing choose models?**
+   - **One provider for all tiers**: choose one provider and auto-detect every tier from it
+   - **Auto-pick across multiple providers**: rank providers in priority order and let the plugin auto-select per tier
+   - **Choose specific models across providers**: choose a detected provider per tier, then enter the model ID inside it
 
-2. **Are there any agents you want to exclude from routing?**
+2. **Which providers do you have connected in OpenCode?**
+   Common options: `anthropic`, `openai`, `google`, `xai`, `github-copilot`, `opencode`
+   The init CLI now auto-detects these from your OpenCode authentication state first. This determines `provider_priority` — either one provider for single-provider mode, or an ordered fallback list for multi-provider auto-detection.
+
+3. **Are there any agents you want to exclude from routing?**
    Some agents (like Sisyphus, Prometheus) may need to stay on their statically-configured model.
    These go into `exclude_agents`.
 
-3. **Do you want to specify a classifier model, or auto-detect?**
+4. **Do you want to specify a classifier model, or auto-detect?**
    - **Auto-detect** (recommended): the plugin uses the cheapest tier-1 model as the classifier
    - **Specify**: provide a model ID like `openai/gpt-5-nano` or `google/gemini-2.5-flash`
 
@@ -62,17 +67,21 @@ ls node_modules/opencode-workload-router/dist/index.js && echo "Plugin installed
 
 ### Step 3: Register the plugin in opencode.json
 
-Read the current opencode.json and add `opencode-workload-router` to the `plugin` array:
+If you use `npx opencode-workload-router init`, this step is handled automatically. The init CLI writes `opencode-workload-router@latest` into the `plugin` array so OpenCode keeps the plugin updated on launch.
+
+If you are configuring things manually, add `opencode-workload-router@latest` to the `plugin` array:
+
+Read the current opencode.json and add `opencode-workload-router@latest` to the `plugin` array:
 
 ```bash
 cat ~/.config/opencode/opencode.json
 ```
 
-Add `"opencode-workload-router"` to the `plugin` array. Example result:
+Add `"opencode-workload-router@latest"` to the `plugin` array. Example result:
 
 ```json
 {
-  "plugin": ["oh-my-opencode@latest", "opencode-workload-router"]
+  "plugin": ["oh-my-openagent@latest", "opencode-workload-router@latest"]
 }
 ```
 
@@ -80,7 +89,7 @@ If there's no `plugin` array, create one:
 
 ```json
 {
-  "plugin": ["opencode-workload-router"]
+  "plugin": ["opencode-workload-router@latest"]
 }
 ```
 
@@ -94,7 +103,7 @@ Based on the user's answers from Step 0, write the config file.
 npx opencode-workload-router init
 ```
 
-This will prompt for provider priority, classifier model, and excluded agents.
+This will auto-detect authenticated OpenCode providers, prompt for routing strategy, classifier model, and excluded agents, then update both `workload-router.json` and `opencode.json`.
 
 **Option B: Write the config directly** (faster for agents)
 
@@ -103,14 +112,16 @@ Create `~/.config/opencode/workload-router.json`:
 ```jsonc
 {
   "enabled": true,
-  "provider_priority": ["anthropic", "openai"],  // ordered by user preference
-  "exclude_agents": [],                            // agents to skip routing for
+  "provider_priority": ["anthropic", "openai"],    // one provider or ordered fallback list
+  "exclude_agents": [],                              // agents to skip routing for
   "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
   // "classifier_model": "openai/gpt-5-nano"      // uncomment to override auto-detect
 }
 ```
 
-Adjust `provider_priority` and `exclude_agents` based on user's answers.
+Adjust `provider_priority`, optional `tier_overrides`, and `exclude_agents` based on the user's answers.
+
+If no authenticated providers are detected, init falls back to the built-in provider catalog and the user should run `opencode auth login` to narrow the choices.
 
 **Config field reference:**
 
@@ -127,10 +138,24 @@ Adjust `provider_priority` and `exclude_agents` based on user's answers.
 
 ```jsonc
 {
+  "provider_priority": ["openai", "google"],
   "tier_overrides": {
     "tier-1": { "model": "openai/gpt-5-nano" },
+    "tier-2": { "model": "google/gemini-2.5-flash" },
+    "tier-3": { "model": "google/gemini-2.5-pro" },
     "tier-4": { "model": "openai/gpt-5.4", "variant": "xhigh" }
   }
+}
+```
+
+**Single-provider example** (for users who want all tiers auto-picked from one provider):
+
+```jsonc
+{
+  "enabled": true,
+  "provider_priority": ["openai"],
+  "exclude_agents": [],
+  "intercept_tools": ["agent", "subtask", "delegate_task", "call_omo_agent"]
 }
 ```
 

@@ -4,7 +4,7 @@
 
 ## OVERVIEW
 
-OpenCode plugin (npm: `opencode-workload-router`) that intercepts subagent spawn calls and rewrites the model based on 4-tier workload classification. The main agent is the primary decision-maker for tier classification (via system prompt injection), with heuristic and small-model classifiers as fallbacks. Auto-detects the best available model per tier from connected providers. 9 TypeScript source files, ~400 LOC.
+OpenCode plugin (npm: `opencode-workload-router`) that intercepts subagent spawn calls and rewrites the model based on 4-tier workload classification. The main agent is the primary decision-maker for tier classification (via system prompt injection), with heuristic and small-model classifiers as fallbacks. Auto-detects the best available model per tier from connected providers. The init CLI auto-detects authenticated OpenCode providers from auth state and registers `opencode-workload-router@latest` in `opencode.json`. 11 TypeScript source files, ~550 LOC.
 
 ## STRUCTURE
 
@@ -98,7 +98,7 @@ Subagent spawn intercepted
 
 Fields: `enabled` (bool), `provider_priority` (string[]), `classifier_model` (optional string), `exclude_agents` (string[]), `tier_overrides` (optional per-tier model/variant), `intercept_tools` (string[]).
 
-Disabled by default. The init CLI (`npx opencode-workload-router init`) writes the config interactively.
+Disabled by default. The init CLI (`npx opencode-workload-router init`) writes the config interactively, narrows provider choices to authenticated OpenCode providers when available, and auto-registers `opencode-workload-router@latest` in `opencode.json`.
 
 ## CONVENTIONS
 
