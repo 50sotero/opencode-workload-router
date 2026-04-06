@@ -118,4 +118,62 @@ describe("createInterceptor", () => {
     await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
     expect(output.args.model).toBeUndefined()
   })
+
+  it("consumes a one-shot override with variant on the next subagent call", async () => {
+    const overrides = createSessionModelOverrideStore()
+    overrides.setOneShot("s1", { providerID: "openai", modelID: "gpt-5.2", variant: "low" })
+    const mockClassify = vi.fn().mockResolvedValue("tier-1")
+    const interceptor = createInterceptor(baseConfig, baseTierMap, mockClassify, overrides)
+    const output = {
+      args: { prompt: "work on the user profile page", subagent_type: "explore" },
+    }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
+    expect(mockClassify).not.toHaveBeenCalled()
+    expect(output.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.2",
+      variant: "low",
+    })
+    // One-shot should be consumed — gone after use
+    expect(overrides.getOneShot("s1")).toBeUndefined()
+  })
+
+  it("falls back to tier routing after a one-shot is consumed", async () => {
+    const overrides = createSessionModelOverrideStore()
+    overrides.setOneShot("s1", { providerID: "openai", modelID: "gpt-5.2", variant: "low" })
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, overrides)
+
+    // First call consumes the one-shot
+    const output1 = { args: { prompt: "[tier-1] first task", subagent_type: "explore" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output1)
+    expect(output1.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.2",
+      variant: "low",
+    })
+
+    // Second call should fall through to tier routing (no one-shot left)
+    const output2 = { args: { prompt: "[tier-1] second task", subagent_type: "explore" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c2" }, output2)
+    expect(output2.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5-nano",
+    })
+  })
+
+  it("one-shot takes priority over persistent session override", async () => {
+    const overrides = createSessionModelOverrideStore()
+    overrides.set("s1", { providerID: "google", modelID: "gemini-pro" })
+    overrides.setOneShot("s1", { providerID: "openai", modelID: "gpt-5.4", variant: "xhigh" })
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, overrides)
+    const output = { args: { prompt: "important task", subagent_type: "explore" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
+    expect(output.args.model).toEqual({
+      providerID: "openai",
+      modelID: "gpt-5.4",
+      variant: "xhigh",
+    })
+    // Persistent override should still be there for next call
+    expect(overrides.get("s1")).toEqual({ providerID: "google", modelID: "gemini-pro" })
+  })
 })

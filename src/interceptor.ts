@@ -70,6 +70,22 @@ export function createInterceptor(
     const agent = extractAgentName(args as Record<string, unknown>)
     if (agent && excludeAgents.has(agent)) return
 
+    // One-shot override takes highest priority (consumed on use)
+    const oneShotOverride = sessionOverrides?.consumeOneShot(input.sessionID)
+    if (oneShotOverride) {
+      const modelValue: Record<string, string> = {
+        providerID: oneShotOverride.providerID,
+        modelID: oneShotOverride.modelID,
+      }
+      if (oneShotOverride.variant) {
+        modelValue.variant = oneShotOverride.variant
+      }
+
+      ;(args as Record<string, unknown>).model = modelValue
+      return
+    }
+
+    // Persistent session override
     const rememberedOverride = sessionOverrides?.get(input.sessionID)
     if (rememberedOverride) {
       const modelValue: Record<string, string> = {
