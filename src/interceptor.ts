@@ -5,7 +5,19 @@ import type { ClassifierSendFn } from "./classifier.js"
 import { classifyWithModel } from "./classifier.js"
 import { classifyHeuristic } from "./heuristic.js"
 import type { SessionModelOverrideStore } from "./session-overrides.js"
-import type { TierName, TierMap, WorkloadRouterConfig } from "./types.js"
+import type { TierName, TierMap, WorkloadRouterConfig, ResolvedModel } from "./types.js"
+
+export type RoutingReason = "one-shot" | "persistent-override" | "tier-classification"
+
+export type RoutingEvent = {
+  model: ResolvedModel
+  tier?: TierName
+  reason: RoutingReason
+  tool: string
+  agent?: string
+}
+
+export type RoutingNotifyFn = (event: RoutingEvent) => void
 
 type ToolInput = {
   tool: string
@@ -36,6 +48,7 @@ export function createInterceptor(
   tierMap: TierMap,
   classifierSend: ClassifierSendFn | null,
   sessionOverrides?: SessionModelOverrideStore,
+  onRouted?: RoutingNotifyFn,
 ) {
   const interceptTools = new Set(config.intercept_tools.map(t => t.toLowerCase()))
   const excludeAgents = new Set(config.exclude_agents)
@@ -82,6 +95,7 @@ export function createInterceptor(
       }
 
       ;(args as Record<string, unknown>).model = modelValue
+      onRouted?.({ model: oneShotOverride, reason: "one-shot", tool: toolName, agent: agent ?? undefined })
       return
     }
 
@@ -97,6 +111,7 @@ export function createInterceptor(
       }
 
       ;(args as Record<string, unknown>).model = modelValue
+      onRouted?.({ model: rememberedOverride, reason: "persistent-override", tool: toolName, agent: agent ?? undefined })
       return
     }
 
@@ -113,5 +128,6 @@ export function createInterceptor(
     }
 
     ;(args as Record<string, unknown>).model = modelValue
+    onRouted?.({ model: resolved, tier, reason: "tier-classification", tool: toolName, agent: agent ?? undefined })
   }
 }

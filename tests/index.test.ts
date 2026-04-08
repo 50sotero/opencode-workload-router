@@ -95,6 +95,7 @@ describe("WorkloadRouter startup", () => {
     const plugin = await WorkloadRouter({
       client: {
         provider: { list: providerList },
+        tui: { showToast: vi.fn().mockResolvedValue({}) },
       },
     } as never)
 

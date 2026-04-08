@@ -49,7 +49,7 @@ export function loadConfig(): WorkloadRouterConfig {
   try {
     raw = fs.readFileSync(configPath, "utf-8")
   } catch {
-    console.warn("[workload-router] Failed to read config file")
+    process.stderr.write("[workload-router] Failed to read config file\n")
     return DEFAULT_CONFIG
   }
 
@@ -57,13 +57,13 @@ export function loadConfig(): WorkloadRouterConfig {
   try {
     parsed = JSON.parse(raw)
   } catch {
-    console.warn("[workload-router] Invalid JSON in config file")
+    process.stderr.write("[workload-router] Invalid JSON in config file\n")
     return DEFAULT_CONFIG
   }
 
   const result = ConfigSchema.safeParse(parsed)
   if (!result.success) {
-    console.warn("[workload-router] Config validation failed:", result.error.message)
+    process.stderr.write(`[workload-router] Config validation failed: ${result.error.message}\n`)
     return DEFAULT_CONFIG
   }
 
