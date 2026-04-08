@@ -4,6 +4,7 @@ import type { Plugin } from "@opencode-ai/plugin"
 import type { ClassifierSendFn } from "./classifier.js"
 import { loadConfig } from "./config.js"
 import { createInterceptor } from "./interceptor.js"
+import type { RoutingEvent } from "./interceptor.js"
 import {
   createChatMessageHook,
   createSessionModelOverrideStore,
@@ -50,11 +51,26 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
   })
 }
 
+function formatRoutingToast(event: RoutingEvent): string {
+  const model = `${event.model.providerID}/${event.model.modelID}`
+  const variant = event.model.variant ? ` (${event.model.variant})` : ""
+  const agent = event.agent ? ` [${event.agent}]` : ""
+
+  switch (event.reason) {
+    case "one-shot":
+      return `One-shot override → ${model}${variant}${agent}`
+    case "persistent-override":
+      return `Session override → ${model}${variant}${agent}`
+    case "tier-classification":
+      return `${event.tier} → ${model}${variant}${agent}`
+  }
+}
+
 export const WorkloadRouter: Plugin = async ({ client }) => {
   const config = loadConfig()
 
   if (!config.enabled) {
-    console.log("[workload-router] Disabled in config")
+    process.stderr.write("[workload-router] Disabled in config\n")
     return {}
   }
 
@@ -75,12 +91,12 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
         connectedIds = providerResponse.data.connected ?? []
       }
     } catch (err) {
-      console.warn("[workload-router] Failed to query providers:", err)
+      process.stderr.write(`[workload-router] Failed to query providers: ${err}\n`)
       return null
     }
 
     if (connectedIds.length === 0) {
-      console.warn("[workload-router] No connected providers found, disabling")
+      process.stderr.write("[workload-router] No connected providers found, disabling\n")
       return null
     }
 
@@ -93,16 +109,17 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
 
     const filledTiers = Object.entries(tierMap).filter(([, v]) => v != null)
     if (filledTiers.length === 0) {
-      console.warn("[workload-router] No tiers could be resolved, disabling")
+      process.stderr.write("[workload-router] No tiers could be resolved, disabling\n")
       return null
     }
 
-    console.log("[workload-router] Resolved tiers:")
-    for (const [tier, model] of filledTiers) {
-      if (!model) continue
-      const variant = model.variant ? ` (variant: ${model.variant})` : ""
-      console.log(`  ${tier}: ${model.providerID}/${model.modelID}${variant}`)
-    }
+    const tierLines = filledTiers
+      .filter(([, model]) => model != null)
+      .map(([tier, model]) => {
+        const variant = model!.variant ? ` (variant: ${model!.variant})` : ""
+        return `  ${tier}: ${model!.providerID}/${model!.modelID}${variant}`
+      })
+    process.stderr.write(`[workload-router] Resolved tiers:\n${tierLines.join("\n")}\n`)
 
     let classifierSend: ClassifierSendFn | null = null
     const classifierTierModel = tierMap["tier-1"]
@@ -146,7 +163,18 @@ export const WorkloadRouter: Plugin = async ({ client }) => {
         connectedIds,
         config.provider_priority,
       ),
-      interceptor: createInterceptor(config, tierMap, classifierSend, sessionOverrides),
+      interceptor: createInterceptor(config, tierMap, classifierSend, sessionOverrides, (event) => {
+        client.tui.showToast({
+          body: {
+            title: "Workload Router",
+            message: formatRoutingToast(event),
+            variant: "info",
+            duration: 3_000,
+          },
+        }).catch(() => {
+          // Toast delivery is best-effort; the TUI may not be running
+        })
+      }),
     }
   }
 

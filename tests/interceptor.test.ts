@@ -1,5 +1,6 @@
 import { describe, it, expect, vi } from "vitest"
 import { createInterceptor } from "../src/interceptor"
+import type { RoutingEvent } from "../src/interceptor"
 import { createSessionModelOverrideStore } from "../src/session-overrides"
 import type { TierMap, WorkloadRouterConfig } from "../src/types"
 
@@ -175,5 +176,49 @@ describe("createInterceptor", () => {
     })
     // Persistent override should still be there for next call
     expect(overrides.get("s1")).toEqual({ providerID: "google", modelID: "gemini-pro" })
+  })
+
+  it("calls onRouted with tier-classification reason", async () => {
+    const onRouted = vi.fn()
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, undefined, onRouted)
+    const output = { args: { prompt: "[tier-1] find all TODO comments", agent: "explore" } }
+    await interceptor({ tool: "agent", sessionID: "s1", callID: "c1" }, output)
+    expect(onRouted).toHaveBeenCalledOnce()
+    const event: RoutingEvent = onRouted.mock.calls[0][0]
+    expect(event.reason).toBe("tier-classification")
+    expect(event.tier).toBe("tier-1")
+    expect(event.model).toEqual({ providerID: "openai", modelID: "gpt-5-nano" })
+    expect(event.tool).toBe("agent")
+    expect(event.agent).toBe("explore")
+  })
+
+  it("calls onRouted with one-shot reason on override", async () => {
+    const onRouted = vi.fn()
+    const overrides = createSessionModelOverrideStore()
+    overrides.setOneShot("s1", { providerID: "openai", modelID: "gpt-5.2" })
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, overrides, onRouted)
+    const output = { args: { prompt: "some task", subagent_type: "explore" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
+    expect(onRouted).toHaveBeenCalledOnce()
+    expect(onRouted.mock.calls[0][0].reason).toBe("one-shot")
+  })
+
+  it("calls onRouted with persistent-override reason", async () => {
+    const onRouted = vi.fn()
+    const overrides = createSessionModelOverrideStore()
+    overrides.set("s1", { providerID: "google", modelID: "gemini-pro" })
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, overrides, onRouted)
+    const output = { args: { prompt: "some task", subagent_type: "explore" } }
+    await interceptor({ tool: "task", sessionID: "s1", callID: "c1" }, output)
+    expect(onRouted).toHaveBeenCalledOnce()
+    expect(onRouted.mock.calls[0][0].reason).toBe("persistent-override")
+  })
+
+  it("does not call onRouted when tool is not intercepted", async () => {
+    const onRouted = vi.fn()
+    const interceptor = createInterceptor(baseConfig, baseTierMap, null, undefined, onRouted)
+    const output = { args: { command: "ls -la" } }
+    await interceptor({ tool: "bash", sessionID: "s1", callID: "c1" }, output)
+    expect(onRouted).not.toHaveBeenCalled()
   })
 })
